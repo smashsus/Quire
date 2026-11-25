@@ -1,0 +1,6 @@
+{
+  "name": "Quire",
+  "description": "Local-only PDF to Markdown converter, Tesseract OCR, and Cactus Mirage 22MB on-device vision-language studio.",
+  "requestFramePermissions": ["camera"],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
