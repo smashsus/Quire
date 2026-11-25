@@ -20,7 +20,8 @@ class MirageWorkerClient {
 
   private getWorker(): Worker {
     if (!this.worker) {
-      this.worker = new Worker('/cactus/mirage-worker.js');
+      const workerUrl = new URL('./cactus/mirage-worker.js', window.location.href).href;
+      this.worker = new Worker(workerUrl);
       this.worker.onmessage = (event) => {
         const msg = event.data;
         if (msg && !msg.id && (msg.type === 'status' || msg.type === 'progress')) {

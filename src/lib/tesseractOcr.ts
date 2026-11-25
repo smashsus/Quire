@@ -6,7 +6,13 @@ let workerPromise: Promise<TesseractWorker> | null = null;
 
 async function getOcrWorker(): Promise<TesseractWorker> {
   if (!workerPromise) {
-    workerPromise = createWorker('eng');
+    const workerPath = new URL('./tesseract/worker.min.js', window.location.href).href;
+    const corePath = new URL('./tesseract/tesseract-core-simd-lstm.wasm.js', window.location.href).href;
+    workerPromise = createWorker('eng', 1, {
+      workerPath,
+      corePath,
+      workerBlobURL: false,
+    });
   }
   return workerPromise;
 }

@@ -1,8 +1,19 @@
 # Quire
 
-Quire is a browser-based PDF to Markdown converter and visual document analyzer. All PDF parsing, math reconstruction, Tesseract OCR, and Cactus Mirage vision inference run locally in your browser via WebAssembly and Web Workers.
+Quire is a browser extension and web application for converting PDFs to Markdown and analyzing images locally. All PDF parsing, math reconstruction, Tesseract OCR, and Cactus Mirage vision inference run on your device via WebAssembly and Web Workers.
 
-[Download Quire Source (.zip)](./public/quire-source.zip?raw=true)
+- [Download Browser Extension (.zip)](./public/quire-extension.zip?raw=true) (ready for Chrome, Edge, and Brave Load Unpacked)
+- [Download Source Code (.zip)](./public/quire-source.zip?raw=true)
+
+## Install as a Browser Extension (Manifest V3)
+
+You do not need Node.js or a build step to install the extension:
+
+1. Download [quire-extension.zip](./public/quire-extension.zip?raw=true) and unzip it into a folder on your computer.
+2. Open `chrome://extensions` in Chrome (or `edge://extensions` in Edge, `brave://extensions` in Brave).
+3. Turn on **Developer mode** in the top-right corner.
+4. Click **Load unpacked** and select the unzipped folder containing `manifest.json`.
+5. Click the Quire icon in your browser toolbar to open the workspace in a full tab (or open it from the Side Panel menu).
 
 ## What is inside
 
@@ -23,41 +34,38 @@ Quire combines a structured PDF extraction pipeline with two client-side vision 
 3. **Prompt Chunker**
    - Splits long Markdown output by paragraph boundaries to fit a configurable character budget, with approximate token counts and a sequential "Copy Next" tracker.
 
-## How Mirage runs in the browser
+## How Mirage and OCR run locally
 
-Mirage runs through `/public/cactus/mirage-worker.js`, which loads `/public/cactus/cactus.js` and `/public/cactus/cactus.wasm`.
+- **Cactus Mirage**: Runs through `cactus/mirage-worker.js`, loading `cactus/cactus.js` and `cactus/cactus.wasm`. On first run, it downloads `mirage.cact` (`21.6 MB`) from Hugging Face and stores it in browser IndexedDB (`quire-mirage-cache`). Subsequent sessions mount from IndexedDB, or you can load a `.cact` file from disk using **Load .cact**.
+- **Tesseract.js**: Bundles `tesseract/worker.min.js` and `tesseract/tesseract-core-simd-lstm.wasm.js` locally inside the extension package to satisfy Manifest V3 `script-src 'self' 'wasm-unsafe-eval'` CSP rules without remote script imports.
 
-- The first time you trigger Mirage, the worker downloads `mirage.cact` (`21.6 MB`) from Hugging Face and stores it in your browser's IndexedDB (`quire-mirage-cache`).
-- Later sessions mount directly from IndexedDB without hitting the network.
-- If you prefer offline setup from the start, use **Load .cact** in the Mirage Vision runtime bar to supply a local weights file from disk.
+## Building from source
 
-## Running locally
-
-Unzip the archive or clone the repository, then install dependencies and start the Vite dev server:
+To modify the source or rebuild the extension bundle yourself:
 
 ```bash
 npm install
-npm run dev
+npm run dev       # Local Vite dev server on http://localhost:3000
+npm run lint      # TypeScript check (tsc --noEmit)
+npm run build     # Builds the loadable extension into dist/
 ```
 
-The app serves on `http://localhost:3000`.
-
-Other available scripts:
-
-```bash
-npm run lint     # TypeScript check (tsc --noEmit)
-npm run build    # Production bundle into dist/
-npm run preview  # Preview the production build
-```
+After running `npm run build`, the `dist/` folder contains `manifest.json`, `background.js`, compiled assets, icons, and WASM workers ready to load via **Load unpacked**.
 
 ## Project structure
 
 ```text
 public/
+  manifest.json          Chrome/Edge/Brave Manifest V3 configuration
+  background.js          Service worker opening Quire on toolbar click
+  icons/                 Extension icons (16px, 48px, 128px)
   cactus/
     cactus.js            Emscripten loader for Cactus WASM
     cactus.wasm          Compiled Cactus runtime binary
     mirage-worker.js     Web Worker managing IndexedDB cache and Mirage inference
+  tesseract/
+    worker.min.js        Local Tesseract worker script for MV3 CSP compliance
+    tesseract-core-simd-lstm.wasm.js  Bundled Tesseract SIMD LSTM WASM core
 src/
   components/
     DocumentStudio.tsx   PDF/image dropzone, engine switcher, page/figure preview, Markdown editor
@@ -72,7 +80,7 @@ src/
     mirageMarkdown.ts    Converts Mirage JSON responses into readable Markdown
     pdfProcessor.ts      Orchestrates PDF.js, Tesseract.js, JSZip figure exports, and Mirage
     sampleAssets.ts      Canvas generators for sample invoice and diagram inputs
-    tesseractOcr.ts      Lazy Tesseract.js worker feeding word boxes into layout reconstruction
+    tesseractOcr.ts      Local Tesseract.js worker feeding word boxes into layout reconstruction
   types/
     quire.ts             Shared TypeScript types
   App.tsx                Top navigation, theme toggle, drag/paste routing, and shared state
@@ -80,6 +88,6 @@ src/
 
 ## Notes and limitations
 
-- Camera capture in Mirage Vision requires browser camera permissions and a secure context (`localhost` or HTTPS).
+- Camera capture in Mirage Vision requires browser camera permissions and works best when opened in a full extension tab via the toolbar icon.
 - Large images are downscaled to a maximum dimension of `1024px` before RGB extraction for Mirage WASM inference to keep memory usage and latency low.
 - Pure scanned PDFs with many pages run faster with Tesseract or Hybrid than running full Mirage scene inference on every page.

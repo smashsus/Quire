@@ -69,15 +69,17 @@ async function clearCachedWeights() {
 
 async function ensureWasmRuntime() {
   if (wasmModule) return wasmModule;
-  importScripts('/cactus/cactus.js');
-  const wasmRes = await fetch('/cactus/cactus.wasm');
+  const cactusJsUrl = new URL('./cactus.js', self.location.href).href;
+  const cactusWasmUrl = new URL('./cactus.wasm', self.location.href).href;
+  importScripts(cactusJsUrl);
+  const wasmRes = await fetch(cactusWasmUrl);
   if (!wasmRes.ok) {
     throw new Error(`Failed to fetch cactus.wasm (${wasmRes.status})`);
   }
   const wasmBinary = await wasmRes.arrayBuffer();
   wasmModule = await createCactus({
     wasmBinary,
-    locateFile: (path) => `/cactus/${path}`,
+    locateFile: (path) => new URL(`./${path}`, self.location.href).href,
   });
   return wasmModule;
 }
